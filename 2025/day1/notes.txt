@@ -1,0 +1,17 @@
+
+C = 3
+S = L48
+
+P = 1
+C = 45 
+
+
+- keep track of each passed and visited number
+		- shift them all by the offset once it is known
+
+- parse all rotations multithreaded
+
+- compress rotations 
+		-> % 100 rotations
+		L48 + L28 = L72
+
