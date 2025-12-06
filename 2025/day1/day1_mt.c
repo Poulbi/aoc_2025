@@ -54,46 +54,46 @@ struct rotations_array
 
 #define MAX 100
 
-s32 RotateAndIncrementPasswordPartOne(s32 *CursorPos, rotation Rotation)
+s32 RotateAndIncrementPasswordPartOne(s32 *ArrowPos, rotation Rotation)
 {
     s32 Result = 0;
-    s32 Cursor = *CursorPos;
+    s32 Arrow = *ArrowPos;
     
     Rotation.Count %= MAX;
     
     // Rotate the cursor
     if(Rotation.IsLeft)
     {
-        Cursor = ((MAX+Cursor) - Rotation.Count)%MAX;
+        Arrow = ((MAX+Arrow) - Rotation.Count)%MAX;
     }
     else
     {
-        Cursor = (Cursor + Rotation.Count)%MAX;
+        Arrow = (Arrow + Rotation.Count)%MAX;
     }
-    Assert(Cursor >= 0 && Cursor < MAX);
+    Assert(Arrow >= 0 && Arrow < MAX);
     
-    Result = (Cursor == 0);
+    Result = (Arrow == 0);
     
-    *CursorPos = Cursor;
+    *ArrowPos = Arrow;
     
     return Result;
 }
 
-s32 RotateAndIncrementPasswordPartTwo(s32 *CursorPos, rotation Rotation)
+s32 RotateAndIncrementPasswordPartTwo(s32 *ArrowPos, rotation Rotation)
 {
     s32 Result = 0;
-    s32 Cursor = *CursorPos;
+    s32 Arrow = *ArrowPos;
     
     s32 Turns = Rotation.Count / MAX; 
     Rotation.Count %= MAX;
     
-    if(Cursor != 0)
+    if(Arrow != 0)
     {
-        if(Rotation.IsLeft && (Rotation.Count > Cursor))
+        if(Rotation.IsLeft && (Rotation.Count > Arrow))
         {
             Turns += 1;
         }
-        else if(!Rotation.IsLeft && (Cursor + Rotation.Count > MAX))
+        else if(!Rotation.IsLeft && (Arrow + Rotation.Count > MAX))
         {
             Turns += 1;
         }
@@ -102,17 +102,17 @@ s32 RotateAndIncrementPasswordPartTwo(s32 *CursorPos, rotation Rotation)
     //Rotate the cursor
     if(Rotation.IsLeft)
     {
-        Cursor = ((MAX+Cursor) - Rotation.Count)%MAX;
+        Arrow = ((MAX+Arrow) - Rotation.Count)%MAX;
     }
     else
     {
-        Cursor = (Cursor + Rotation.Count)%MAX;
+        Arrow = (Arrow + Rotation.Count)%MAX;
     }
-    Assert(Cursor >= 0 && Cursor < MAX);
+    Assert(Arrow >= 0 && Arrow < MAX);
     
-    Result = Turns + !!(Cursor == 0);
+    Result = Turns + !!(Arrow == 0);
     
-    *CursorPos = Cursor;
+    *ArrowPos = Arrow;
     
     return Result;
 }
@@ -156,13 +156,20 @@ void *EntryPoint(void *Params)
     
     range_s64 Range = LaneRange(File->Size);
     
-    // 1. Parse the whole file 
-    // NOTE(luca): if the character is not an R or an L we should skip until we find an R or an L.  This will account for when a range does not stop at a newline.
+    rotations_array *RotationsTable = 0;
+    if(LaneIndex() == 0)
+    {
+        RotationsTable = (rotations_array *)malloc(LaneCount()*sizeof(rotations_array));
+    }
+    LaneSyncU64((u64 *)&RotationsTable, 0);
     
     rotations_array Rotations = {0};
     // Allocate the maximum amount of possible rotations (e.g., a file containing "L123...789\nEOF")
     umm MaxRotationsCount = (Range.Max - Range.Min - 2);
     Rotations.Values = (rotation *)malloc((MaxRotationsCount)*sizeof(rotation));
+    
+    // Parse the whole file 
+    // NOTE(luca): If the character at the start of the range is not an R or an L we should skip until we find an R or an L.  This will account for when a range does not stop at a newline.
     
     u8 *In = File->Data;
     for(s64 At = Range.Min; At < Range.Max; At += 1)
@@ -213,20 +220,13 @@ void *EntryPoint(void *Params)
         }
     }
     
-    rotations_array *RotationsTable = 0;
-    if(LaneIndex() == 0)
-    {
-        RotationsTable = (rotations_array *)malloc(LaneCount()*sizeof(rotations_array));
-    }
-    LaneSyncU64((u64 *)&RotationsTable, 0);
-    
     RotationsTable[LaneIndex()] = Rotations;
     
     LaneSync();
     
     if(LaneIndex() == 0)
     {
-        s32 Cursor = 50;
+        s32 Arrow = 50;
         s32 Password = 0;
         
         for(EachIndex(Index, LaneCount()))
@@ -240,15 +240,12 @@ void *EntryPoint(void *Params)
                 printf("%c%d\n", ((Rotation.IsLeft) ? 'L' : 'R'), Rotation.Count);
 #endif
                 
-                Password += RotateAndIncrementPasswordPartOne(&Cursor, Rotation);
+                Password += RotateAndIncrementPasswordPartOne(&Arrow, Rotation);
             }
         }
         
         printf("Password is %d.\n", Password);
     }
-    
-    // TODO(luca): 
-    // 2. On a single lane go over each rotation and calculate the password.
     
     return 0;
 }
