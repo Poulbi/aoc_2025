@@ -1,0 +1,43 @@
+version(2);
+project_name = "Advent Of Code";
+
+patterns = 
+{
+    "*.c",
+    "*.cpp",
+    "*.h",
+    "*.m",
+    "*.bat",
+    "*.sh",
+    "*.4coder",
+};
+
+blacklist_patterns = 
+{
+    ".*",
+};
+
+load_paths_base = 
+{
+    { ".", .relative = true, .recursive = true, },
+};
+
+load_paths = {
+    .win = load_paths_base,
+    .linux = load_paths_base,
+    .mac = load_paths_base,
+};
+
+commands =
+{
+    .build = 
+    {
+        .out = "*compilation*", .save_dirty_files = true,
+        .linux = "./2025/day1/build.sh day1_mt",
+    },
+};
+
+fkey_command =
+{
+    .F1 = "build",
+};

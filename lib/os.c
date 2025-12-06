@@ -1,7 +1,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-global_variable u8 LogBuffer[Kilobytes(64)];
+global u8 LogBuffer[Kilobytes(64)];
 
 #if OS_LINUX
 #include <errno.h>

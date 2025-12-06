@@ -1,0 +1,29 @@
+
+# https://www.rfleury.com/p/multi-core-by-default
+By using static you can not rerun the same code for another purpose because that will overwrite the static value.
+
+Strict superset of single-core code.
+
+# https://www.rfleury.com/p/multi-threading-and-mutation
+Programs are a product of their environment and the constraints it imposes.
+Rewrites are okay if you were exploring the problem space first.
+It is hard to port single threaded to multi threaded, so you should do it at the start.
+
+Read cannot occur while a write
+Writes cannot be to the same memory
+
+ArenaPush is not made thread-safe because that would imply that it is a good default
+to have multiple threads push onto the same arena.
+
+Codepaths may be split in their conflict and conflict-free parts to enable better cooperation.
+
+Often a two-step "build" & "join" is faster than a multithreaded "build" step.
+
+Questions 
+- What is a hash-table-stripe
+
+# https://en.wikipedia.org/wiki/Thread-local_storage
+Thread-local storage is static or global memory that is local to a thread.
+pthread talks about thread-specific data 
+
+# https://gcc.gnu.org/onlinedocs/gcc-3.3.1/gcc/Thread-Local.html#Thread-Local

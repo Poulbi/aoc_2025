@@ -43,8 +43,10 @@ int main(int ArgCount, char *Args[])
                 }
                 Assert(In.Data[At] == '\n');
                 
-                // TODO(luca): Add a validation that this print out matches the input file.
+#if 0                
                 LogFormat("%c%lu\n", ((RotateLeft) ? 'L' : 'R'), RotateCount);
+#endif
+                
             }
             
 #define MAX 100
@@ -89,7 +91,6 @@ int main(int ArgCount, char *Args[])
             //Rotate the cursor
             if(RotateLeft)
             {
-                
                 Cursor = ((MAX+Cursor) - RotateCount)%MAX;
             }
             else

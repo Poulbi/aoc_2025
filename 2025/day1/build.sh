@@ -24,6 +24,10 @@ clang=1
 gcc=0
 debug=1
 release=0
+
+day1=0
+day1_mt=0
+
 for Arg in "$@"; do eval "$Arg=1"; done
 # Exclusive flags
 [ "$release" = 1 ] && debug=0
@@ -48,5 +52,20 @@ printf '[%s compile]\n' "$Compiler"
 Build="../../build"
 mkdir -p "$Build"
 
-false && $Compiler $Flags -o "$Build"/day1 day1.c
-true  && $Compiler $Flags -o "$Build"/day1_mt day1_mt.c
+DidWork=0
+Compile()
+{
+ Source="$1"
+ printf '%s\n' "$Source"
+ $Compiler $Flags -o "$Build"/"${Source%.c}" "$Source"
+ DidWork=1
+}
+
+[ "$day1"    = 1 ] && Compile day1.c
+[ "$day1_mt" = 1 ] && Compile day1_mt.c
+
+if [ "$DidWork" = 0 ]
+then
+ printf 'ERROR: No build provided.\n'
+ printf 'Usage: %s <day1/day1_mt>\n' "$0"
+fi

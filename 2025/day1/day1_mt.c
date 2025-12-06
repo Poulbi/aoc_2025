@@ -1,96 +1,254 @@
-
+//~ Libarries
 #include <stdio.h>
-
-#include <semaphore.h>
-
-/*
-sem_init
-
-sem_post
-sem_wait
-*/
-
+#include <stdlib.h>
+#include <string.h>
+// Linux
 #include <pthread.h>
-
+#include <linux/prctl.h> 
+#include <sys/prctl.h>
+// Mine
 #include "lr/lr.h"
+#include "os.c"
 
-#define NUMBER_OF_CORES 4
+#define MemoryCopy memcpy
 
-void *EntryPoint(void *Params);
+//~ Types
+typedef u64 barrier;
 
-struct thread
+typedef struct lane_context lane_context;
+struct lane_context
 {
-    pthread_t Thread;
-    void *Result;
+    s64 LaneCount;
+    s64 LaneIndex;
+    
+    u64 *SharedStorage;
+    barrier Barrier;
 };
-typedef struct thread thread;
 
-global pthread_barrier_t GlobalThreadBarrier;
+//~ Globals
+global s64 GlobalTotalSum;
+thread_static lane_context *ThreadContext;
 
-int main(void)
+//~ Layers
+#include "linux.c"
+#include "lanes.c"
+
+//~ Macro's
+#define AtomicAdd64(Value, Add) (__atomic_fetch_add((u64 *)(Value), (Add), __ATOMIC_SEQ_CST) + (Add))
+
+//~ Types
+typedef struct rotation rotation;
+struct rotation
 {
-    thread Threads[NUMBER_OF_CORES] = {0};
+    b32 IsLeft;
+    s32 Count;
+};
+
+typedef struct rotations_array rotations_array;
+struct rotations_array
+{
+    rotation *Values;
+    umm Count;
+};
+
+
+#define MAX 100
+
+s32 RotateAndIncrementPasswordPartOne(s32 *CursorPos, rotation Rotation)
+{
+    s32 Result = 0;
+    s32 Cursor = *CursorPos;
     
-    pthread_barrier_init(&GlobalThreadBarrier, 0, NUMBER_OF_CORES);
+    Rotation.Count %= MAX;
     
-    for(s64 ThreadIndex = 0; ThreadIndex < NUMBER_OF_CORES; ThreadIndex += 1)
+    // Rotate the cursor
+    if(Rotation.IsLeft)
     {
-        s32 Result = pthread_create(&Threads[ThreadIndex].Thread, 0, EntryPoint, (void *)ThreadIndex);
-        Assert(Result == 0);
+        Cursor = ((MAX+Cursor) - Rotation.Count)%MAX;
     }
-    
-    for(s64 ThreadIndex = 0; ThreadIndex < NUMBER_OF_CORES; ThreadIndex += 1)
+    else
     {
-        pthread_join(Threads[ThreadIndex].Thread, &Threads[ThreadIndex].Result);
+        Cursor = (Cursor + Rotation.Count)%MAX;
     }
+    Assert(Cursor >= 0 && Cursor < MAX);
     
-    return 0;
+    Result = (Cursor == 0);
+    
+    *CursorPos = Cursor;
+    
+    return Result;
 }
 
-void BarrierSync(void)
+s32 RotateAndIncrementPasswordPartTwo(s32 *CursorPos, rotation Rotation)
 {
-    pthread_barrier_wait(&GlobalThreadBarrier);
+    s32 Result = 0;
+    s32 Cursor = *CursorPos;
+    
+    s32 Turns = Rotation.Count / MAX; 
+    Rotation.Count %= MAX;
+    
+    if(Cursor != 0)
+    {
+        if(Rotation.IsLeft && (Rotation.Count > Cursor))
+        {
+            Turns += 1;
+        }
+        else if(!Rotation.IsLeft && (Cursor + Rotation.Count > MAX))
+        {
+            Turns += 1;
+        }
+    }
+    
+    //Rotate the cursor
+    if(Rotation.IsLeft)
+    {
+        Cursor = ((MAX+Cursor) - Rotation.Count)%MAX;
+    }
+    else
+    {
+        Cursor = (Cursor + Rotation.Count)%MAX;
+    }
+    Assert(Cursor >= 0 && Cursor < MAX);
+    
+    Result = Turns + !!(Cursor == 0);
+    
+    *CursorPos = Cursor;
+    
+    return Result;
 }
 
-global s64 ThreadSums[NUMBER_OF_CORES]; 
 
+//~ Main
 void *EntryPoint(void *Params)
 {
-    s64 ThreadIndex = (s64)Params;
-    s64 ThreadCount = NUMBER_OF_CORES;
-    
-    s64 ValuesCount = 129;
-    s64 *Values = 0;
-    s64 ThreadSum = 0;
-    s64 ValuesPerThread = ValuesCount/ThreadCount;
-    
-    s64 LeftoverValuesCount = ValuesCount%ThreadCount;
-    b32 ThreadHasLeftover = (ThreadIndex < LeftoverValuesCount);
-    s64 LeftoversBeforeThisThreadIndex = ((ThreadHasLeftover) ? 
-                                          ThreadIndex : 
-                                          LeftoverValuesCount);
-    
-    s64 ThreadFirstValueIndex = (ValuesPerThread*ThreadIndex +
-                                 LeftoversBeforeThisThreadIndex);
-    s64 ThreadOnePastLastValueIndex = (ThreadFirstValueIndex + ValuesPerThread + !!ThreadHasLeftover);
-    
-    ThreadSums[ThreadIndex] = ThreadSum;
-    printf("%ld\n", ThreadIndex);
-    // Sync
-    //BarrierSync();
-    printf("%ld\n", ThreadIndex);
-    
-    s64 Sum = 0;
-    for(s64 ThreadIndex = 0; ThreadIndex < NUMBER_OF_CORES; ThreadIndex += 1)
-    {
-        Sum += ThreadSums[ThreadIndex];
+    // Thread init stuff
+    {    
+        ThreadContext = (lane_context *)Params;
+        
+        str8 ThreadName = {0};
+        ThreadName.Data = (u8[16]){0};
+        ThreadName.Size = 1;
+        ThreadName.Data[0] = (u8)LaneIndex() + '0';
+        OS_SetThreadName(ThreadName);
     }
     
-    printf("Index: %ld, Values: %ld-%ld, Leftovers: %ld\n", 
-           ThreadIndex,
-           ThreadFirstValueIndex, ThreadOnePastLastValueIndex,
-           LeftoversBeforeThisThreadIndex);
+    s64 ValuesCount = 0;
+    s64 *Values = 0;
     
+    str8 *File = 0;
+    
+#if 0    
+    str8 FileBuffer = ReadEntireFileIntoMemory("./input_short");
+    File = &FileBuffer;
+#else
+    // TODO(luca): Multi-threaded read of the same file? 
+    if(LaneIndex() == 0)
+    {
+        File = malloc(sizeof(*File));
+        *File = ReadEntireFileIntoMemory("./2025/day1/input");
+        if(!File->Size)
+        {
+            fprintf(stderr, "ERROR: Could not read file.\n");
+        }
+    }
+    LaneSyncU64((u64 *)&File, 0);
+#endif
+    
+    range_s64 Range = LaneRange(File->Size);
+    
+    // 1. Parse the whole file 
+    // NOTE(luca): if the character is not an R or an L we should skip until we find an R or an L.  This will account for when a range does not stop at a newline.
+    
+    rotations_array Rotations = {0};
+    // Allocate the maximum amount of possible rotations (e.g., a file containing "L123...789\nEOF")
+    umm MaxRotationsCount = (Range.Max - Range.Min - 2);
+    Rotations.Values = (rotation *)malloc((MaxRotationsCount)*sizeof(rotation));
+    
+    u8 *In = File->Data;
+    for(s64 At = Range.Min; At < Range.Max; At += 1)
+    {
+        b32 RotateLeft = false;
+        b32 RotateCount = 0;
+        
+        // First
+        while(At >= 0 && (In[At] != 'R' && In[At] != 'L') )
+        {
+            At -= 1;
+        }
+        Assert(At >= 0);
+        
+        if(In[At] == 'R')
+        {
+            RotateLeft = false;
+        }
+        else if(In[At] == 'L')
+        {
+            RotateLeft = true;
+        }
+        else
+        {
+            Assert(0);
+        }
+        At += 1;
+        
+        // NOTE(luca): This should take care of the second part 
+        while(At < Range.Max && In[At] != '\n')
+        {
+            s32 Digit = (In[At] - '0');
+            RotateCount = 10*RotateCount + Digit;
+            At += 1;
+        }
+        
+        b32 IsLastRange = (LaneIndex() == (LaneCount() - 1));
+        if(At < Range.Max || IsLastRange)
+        {
+            rotation *Rotation = Rotations.Values + Rotations.Count;
+            Rotation->IsLeft = RotateLeft;
+            Rotation->Count  = RotateCount;
+            Rotations.Count  += 1;
+#if 0            
+            // NOTE(luca): To validate, you can use this printout against the input file, just be sure to sort both.
+            printf("%c%d\n", ((RotateLeft) ? 'L' : 'R'), RotateCount);
+#endif
+        }
+    }
+    
+    rotations_array *RotationsTable = 0;
+    if(LaneIndex() == 0)
+    {
+        RotationsTable = (rotations_array *)malloc(LaneCount()*sizeof(rotations_array));
+    }
+    LaneSyncU64((u64 *)&RotationsTable, 0);
+    
+    RotationsTable[LaneIndex()] = Rotations;
+    
+    LaneSync();
+    
+    if(LaneIndex() == 0)
+    {
+        s32 Cursor = 50;
+        s32 Password = 0;
+        
+        for(EachIndex(Index, LaneCount()))
+        {
+            rotations_array Rotations = RotationsTable[Index];
+            for(EachIndex(Index, Rotations.Count))
+            {
+                rotation Rotation = Rotations.Values[Index];
+                
+#if 0                
+                printf("%c%d\n", ((Rotation.IsLeft) ? 'L' : 'R'), Rotation.Count);
+#endif
+                
+                Password += RotateAndIncrementPasswordPartOne(&Cursor, Rotation);
+            }
+        }
+        
+        printf("Password is %d.\n", Password);
+    }
+    
+    // TODO(luca): 
+    // 2. On a single lane go over each rotation and calculate the password.
     
     return 0;
 }
