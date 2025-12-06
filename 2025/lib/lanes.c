@@ -1,3 +1,7 @@
+#include "lanes.h"
+
+thread_static lane_context *ThreadContext;
+
 #define LaneCount() (ThreadContext->LaneCount)
 #define LaneIndex() (ThreadContext->LaneIndex)
 

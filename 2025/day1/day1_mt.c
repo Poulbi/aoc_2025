@@ -2,39 +2,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-// Linux
-#include <pthread.h>
-#include <linux/prctl.h> 
-#include <sys/prctl.h>
+
 // Mine
 #include "lr/lr.h"
-#include "os.c"
+
+// OS
+#if OS_LINUX
+# define LINUX_LANE_ENTRYPOINT
+# include "linux.c"
+#elif OS_WINDOWS
+# include "windows.c"
+#endif
 
 #define MemoryCopy memcpy
 
-//~ Types
-typedef u64 barrier;
-
-typedef struct lane_context lane_context;
-struct lane_context
-{
-    s64 LaneCount;
-    s64 LaneIndex;
-    
-    u64 *SharedStorage;
-    barrier Barrier;
-};
-
-//~ Globals
-global s64 GlobalTotalSum;
-thread_static lane_context *ThreadContext;
-
 //~ Layers
-#include "linux.c"
 #include "lanes.c"
-
-//~ Macro's
-#define AtomicAdd64(Value, Add) (__atomic_fetch_add((u64 *)(Value), (Add), __ATOMIC_SEQ_CST) + (Add))
 
 //~ Types
 typedef struct rotation rotation;
@@ -145,7 +128,7 @@ void *EntryPoint(void *Params)
     if(LaneIndex() == 0)
     {
         File = malloc(sizeof(*File));
-        *File = ReadEntireFileIntoMemory("./2025/day1/input");
+        *File = OS_ReadEntireFileIntoMemory("./2025/day1/input");
         if(!File->Size)
         {
             fprintf(stderr, "ERROR: Could not read file.\n");
@@ -240,7 +223,7 @@ void *EntryPoint(void *Params)
                 printf("%c%d\n", ((Rotation.IsLeft) ? 'L' : 'R'), Rotation.Count);
 #endif
                 
-                Password += RotateAndIncrementPasswordPartOne(&Arrow, Rotation);
+                Password += RotateAndIncrementPasswordPartTwo(&Arrow, Rotation);
             }
         }
         

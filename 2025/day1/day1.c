@@ -1,14 +1,15 @@
 #include "lr/lr.h"
-#include "os.c"
+#include "linux.c"
 
 #define MAX_NUMBER 99
+
 
 int main(int ArgCount, char *Args[])
 {
     if(ArgCount >= 2)
     { 
         u32 Password = 0;
-        str8 In = ReadEntireFileIntoMemory(Args[1]);
+        str8 In = OS_ReadEntireFileIntoMemory(Args[1]);
         
         // Where the arrow is pointing at
         s32 Cursor = 50; 
@@ -108,12 +109,12 @@ int main(int ArgCount, char *Args[])
             
         }
         
-        LogFormat("Password is %llu.\n", Password);
+        OS_PrintFormat("Password is %llu.\n", Password);
     }
     else
     {
-        LogFormat("ERROR: No input file specified.\n");
-        LogFormat("Usage: %s <input>\n", Args[0]);
+        OS_PrintFormat("ERROR: No input file specified.\n");
+        OS_PrintFormat("Usage: %s <input>\n", Args[0]);
     }
     
     return 0;
