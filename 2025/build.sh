@@ -6,7 +6,7 @@ ScriptDirectory="$(dirname "$(readlink -f "$0")")"
 cd "$ScriptDirectory"
 
 #- Globals
-CommonCompilerFlags="-DOS_LINUX=1 -fsanitize-trap -nostdinc++ -I../lib"
+CommonCompilerFlags="-DOS_LINUX=1 -fsanitize-trap -nostdinc++ -I./lib"
 CommonWarningFlags="-Wall -Wextra -Wconversion -Wdouble-promotion -Wno-sign-conversion -Wno-sign-compare -Wno-double-promotion -Wno-unused-but-set-variable -Wno-unused-variable -Wno-write-strings -Wno-pointer-arith -Wno-unused-parameter -Wno-unused-function"
 LinkerFlags=""
 
@@ -19,6 +19,7 @@ ClangFlags="-fdiagnostics-absolute-paths -ftime-trace
 GCCFlags="-Wno-cast-function-type -Wno-missing-field-initializers -Wno-int-to-pointer-cast"
 
 #- Main
+Build="../build"
 
 clang=1
 gcc=0
@@ -26,7 +27,7 @@ debug=1
 release=0
 
 day1=0
-day1_mt=0
+day2=0
 
 for Arg in "$@"; do eval "$Arg=1"; done
 # Exclusive flags
@@ -49,23 +50,23 @@ Flags="$Flags $LinkerFlags"
 [ "$release" = 1 ] && printf '[release mode]\n'
 printf '[%s compile]\n' "$Compiler"
 
-Build="../../build"
 mkdir -p "$Build"
 
 DidWork=0
 Compile()
 {
  Source="$1"
+ Out="$2"
  printf '%s\n' "$Source"
- $Compiler $Flags -o "$Build"/"${Source%.c}" "$Source"
+ $Compiler $Flags -o "$Build"/"$Out" "$Source"
  DidWork=1
 }
 
-[ "$day1"    = 1 ] && Compile day1.c
-[ "$day1_mt" = 1 ] && Compile day1_mt.c
+[ "$day1"    = 1 ] && Compile ./day1/day1.c day1
+[ "$day2"    = 1 ] && Compile ./day2/day2.c day2
 
 if [ "$DidWork" = 0 ]
 then
  printf 'ERROR: No build provided.\n'
- printf 'Usage: %s <day1/day1_mt>\n' "$0"
+ printf 'Usage: %s <day1>\n' "$0"
 fi

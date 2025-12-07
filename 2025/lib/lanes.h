@@ -2,16 +2,21 @@
 
 #ifndef LANES_H
 #define LANES_H
+
+#include "arenas.h"
+
 typedef u64 barrier;
 
-typedef struct lane_context lane_context;
-struct lane_context
+typedef struct thread_context thread_context;
+struct thread_context
 {
     s64 LaneCount;
     s64 LaneIndex;
     
     u64 *SharedStorage;
     barrier Barrier;
+    
+    arena *Arena;
 };
 
 #endif //LANES_H

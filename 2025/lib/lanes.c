@@ -1,9 +1,14 @@
 #include "lanes.h"
 
-thread_static lane_context *ThreadContext;
+thread_static thread_context *ThreadContext;
 
 #define LaneCount() (ThreadContext->LaneCount)
 #define LaneIndex() (ThreadContext->LaneIndex)
+
+void ThreadContextSelect(thread_context *Context)
+{
+    ThreadContext = Context;
+}
 
 void LaneSync(void)
 {

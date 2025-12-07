@@ -12,17 +12,11 @@
 #define STB_SPRINTF_IMPLEMENTATION
 #include "stb_sprintf.h"
 
-#include "lanes.h"
 #include "linux.h"
-
-global u8 LogBuffer[Kilobytes(64)];
 
 #if !defined(NUMBER_OF_CORES)
 # define NUMBER_OF_CORES 6
 #endif
-
-//~ Defined previously
-void *EntryPoint(void *Params);
 
 //~ Types
 typedef struct os_thread os_thread;
@@ -31,7 +25,7 @@ struct os_thread
     pthread_t Handle;
     void *Result;
     
-    lane_context Context;
+    thread_context Context;
 };
 
 //~ Syscalls
@@ -100,7 +94,11 @@ void OS_SetThreadName(str8 ThreadName)
     prctl(PR_SET_NAME, ThreadName);
 }
 
-#ifdef LINUX_LANE_ENTRYPOINT
+void* OS_Allocate(umm Size)
+{
+    void *Result = mmap(0, Size, PROT_READ|PROT_WRITE|PROT_EXEC, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
+    return Result;
+}
 
 //~ Entrypoint
 void LinuxMainEntryPoint(int ArgsCount, char **Args)
@@ -138,5 +136,3 @@ int main(int ArgsCount, char **Args)
     LinuxMainEntryPoint(ArgsCount, Args);
     return 0;
 }
-
-#endif // LINUX_LANE_ENTRYPOINT

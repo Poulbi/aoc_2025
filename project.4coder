@@ -33,17 +33,18 @@ commands =
     .build_day1 = 
     {
         .out = "*compilation*", .save_dirty_files = true,
-        .linux = "./2025/day1/build.sh day1",
+        .linux = "./2025/build.sh day1",
     },
-    .build_day1_mt = 
+    .build_day2 = 
     {
         .out = "*compilation*", .save_dirty_files = true,
-        .linux = "./2025/day1/build.sh day1_mt",
+        .linux = "./2025/build.sh day2",
     },
+    
 };
 
 fkey_command =
 {
-    .F1 = "build_day1_mt",
-    .F2 = "build_day1",
+    .F1 = "build_day1",
+    .F2 = "build_day2",
 };

@@ -27,3 +27,26 @@ Thread-local storage is static or global memory that is local to a thread.
 pthread talks about thread-specific data 
 
 # https://gcc.gnu.org/onlinedocs/gcc-3.3.1/gcc/Thread-Local.html#Thread-Local
+
+
+# https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html
+__ATOMIC_SEQ_CST
+all instructions with this flag will have ordering enforced.
+
+# https://www.rfleury.com/p/upstream-and-downstream
+Immediate-mode does not force you to add retained-mode behavior to the usage code.
+Upstream: shallow layers of call stack
+Downstream: deeper layers of call stack
+
+Downstream interfaces can increase exponentially. (can call into other downstream interfaces)
+
+The better downstream code is orgnanized the more powerful the upstream code will get.
+- small changes can produce a multitude of effects
+
+# https://www.youtube.com/watch?app=desktop&v=ZQFzMfHIxng
+Wait-free program does not speed up at all.
+Atomic operations execute as a single transaction with hardware guarantees.
+You can wrap your types with std::atomic<int>
+CAS -> compare and swap
+Atomics are hardware specific thus performance will differ.
+23:33
