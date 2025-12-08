@@ -1,4 +1,6 @@
-
+----------
+Posts read
+----------
 # https://www.rfleury.com/p/multi-core-by-default
 By using static you can not rerun the same code for another purpose because that will overwrite the static value.
 

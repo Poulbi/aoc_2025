@@ -28,6 +28,7 @@ release=0
 
 day1=0
 day2=0
+day3=0
 
 for Arg in "$@"; do eval "$Arg=1"; done
 # Exclusive flags
@@ -64,6 +65,7 @@ Compile()
 
 [ "$day1"    = 1 ] && Compile ./day1/day1.c day1
 [ "$day2"    = 1 ] && Compile ./day2/day2.c day2
+[ "$day3"    = 1 ] && Compile ./day3/day3.c day3
 
 if [ "$DidWork" = 0 ]
 then

@@ -1,3 +1,7 @@
+// Standard
+#include <stdio.h>
+#include <string.h>
+
 // Linux
 #include <pthread.h>
 #include <linux/prctl.h> 
@@ -8,16 +12,13 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <sys/sysinfo.h>
 
 #define STB_SPRINTF_IMPLEMENTATION
 #include "stb_sprintf.h"
 
 #include "linux.h"
 #include "arenas.h"
-
-#if !defined(NUMBER_OF_CORES)
-# define NUMBER_OF_CORES 6
-#endif
 
 //~ Types
 typedef struct os_thread os_thread;
@@ -72,6 +73,7 @@ void OS_PrintFormat(char *Format, ...)
     
     vprintf(Format, Args);
     
+    // TODO(luca): Make these thread-safe.
 #if 0    
     int Length = stbsp_vsprintf((char *)LogBuffer, Format, Args);
     smm BytesWritten = write(STDOUT_FILENO, LogBuffer, Length);
@@ -107,9 +109,15 @@ void LinuxMainEntryPoint(int ArgsCount, char **Args)
     arena *Arena = ArenaAlloc();
     
     char ThreadName[16] = "Main";
-    os_thread Threads[NUMBER_OF_CORES] = {0};
+    
+#if FORCE_THREADS_COUNT
+    s64 ThreadsCount = FORCE_THREADS_COUNT;
+#else
+    s64 ThreadsCount = get_nprocs();
+#endif
+    
+    os_thread *Threads = PushArray(Arena, os_thread, ThreadsCount);
     s32 Ret = 0;
-    s64 ThreadsCount = NUMBER_OF_CORES;
     
     prctl(PR_SET_NAME, ThreadName);
     

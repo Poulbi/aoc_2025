@@ -40,11 +40,15 @@ commands =
         .out = "*compilation*", .save_dirty_files = true,
         .linux = "./2025/build.sh day2",
     },
+    .build_day3 = 
+    {
+        .out = "*compilation*", .save_dirty_files = true,
+        .linux = "./2025/build.sh day3",
+    },
     
 };
 
 fkey_command =
 {
-    .F1 = "build_day1",
-    .F2 = "build_day2",
+    .F1 = "build_day3",
 };

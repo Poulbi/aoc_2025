@@ -1,3 +1,8 @@
+#define MemoryCopy memcpy
+#define AtomicAddEvalU64(Pointer, Value) \
+(__sync_fetch_and_add((Pointer), (Value), __ATOMIC_SEQ_CST) + (Value));
+
+
 #include "lanes.h"
 
 thread_static thread_context *ThreadContext;
@@ -47,4 +52,17 @@ range_s64 LaneRange(s64 ValuesCount)
     Result.Max = (Result.Min + ValuesPerThread + !!ThreadHasLeftover);
     
     return Result;
+}
+
+void ThreadInit(thread_context *ContextToSelect)
+{
+    ThreadContextSelect(ContextToSelect);
+    
+    ThreadContext->Arena = ArenaAlloc();
+    
+    str8 ThreadName = {0};
+    ThreadName.Data = (u8[16]){0};
+    ThreadName.Size = 1;
+    ThreadName.Data[0] = (u8)LaneIndex() + '0';
+    OS_SetThreadName(ThreadName);
 }

@@ -1,14 +1,5 @@
-//~ Libarries
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#define MemoryCopy memcpy
-
 // Mine
 #include "lr/lr.h"
-
-#define NUMBER_OF_CORES 6
 
 //~ Layers
 // OS
@@ -155,88 +146,78 @@ s64 GetInvalIDsSumForRangePartTwo(range_s64 IDRange)
 
 ENTRY_POINT(EntryPoint)
 {
-    // Thread init stuff
-    {    
-        ThreadContextSelect((thread_context *)Params);
-        
-        ThreadContext->Arena = ArenaAlloc();
-        
-        str8 ThreadName = {0};
-        ThreadName.Data = (u8[16]){0};
-        ThreadName.Size = 1;
-        ThreadName.Data[0] = (u8)LaneIndex() + '0';
-        OS_SetThreadName(ThreadName);
-    }
+    ThreadInit((thread_context *)Params);
     
     s64 InvalidIDsSum = 0;
+    str8 InputFile = {0};
+    range_s64 InputRange = {0};
     
-    str8 InputFile = OS_ReadEntireFileIntoMemory("./2025/day2/input");
-    
-    range_s64 Range = LaneRange(InputFile.Size);
+    InputFile = OS_ReadEntireFileIntoMemory("./2025/day2/input");
+    InputRange = LaneRange(InputFile.Size);
     
     if(LaneIndex() == 0)
     {
         OS_PrintFormat("Input size: %lu\n", InputFile.Size);
     }
     
-    u8 *In = InputFile.Data;
-    
     // 1. Parse range
     // 2. Check for invalid IDs
     // 3. Sum all invalid IDs
     // 4. Aggregate
-    
-    s64 At = Range.Min;
-    
-    // Walk back to previous comma if range does not start on one
-    if(At != 0)
-    {
-        while(At >= 0 && In[At] != ',') At -= 1;
-        if(At < 0)
-        {
-            OS_PrintFormat("ERROR(%d): Expected ',' found BOF\n", Range.Min);
-            return 0;
-        }
-        At += 1;
-    }
-    
-    for(; At < Range.Max; At += 1)
-    {
-        range_s64 IDRange = {0};
+    {    
+        u8 *In = InputFile.Data;
+        s64 At = InputRange.Min;
         
-        s64 ParsedValue = 0;
-        
-        while(In[At] != '-')
+        // Walk back to previous comma if range does not start on one
+        if(At != 0)
         {
-            Assert(In[At] >= '0' && In[At] <= '9');
-            s64 Digit = (In[At] - '0');
-            ParsedValue = 10*ParsedValue + Digit; 
+            while(At >= 0 && In[At] != ',') At -= 1;
+            if(At < 0)
+            {
+                OS_PrintFormat("ERROR(%d): Expected ',' found BOF\n", InputRange.Min);
+                return 0;
+            }
             At += 1;
         }
-        IDRange.Min = ParsedValue;
         
-        At += 1;
-        
-        ParsedValue = 0;
-        while(At < Range.Max && In[At] != ',')
+        for(; At < InputRange.Max; At += 1)
         {
-            Assert(In[At] >= '0' && In[At] <= '9');
-            s64 Digit = (In[At] - '0');
-            ParsedValue = 10*ParsedValue + Digit; 
+            range_s64 IDRange = {0};
+            
+            s64 ParsedValue = 0;
+            
+            while(In[At] != '-')
+            {
+                Assert(In[At] >= '0' && In[At] <= '9');
+                s64 Digit = (In[At] - '0');
+                ParsedValue = 10*ParsedValue + Digit; 
+                At += 1;
+            }
+            IDRange.Min = ParsedValue;
             
             At += 1;
-        }
-        IDRange.Max = ParsedValue;
-        
-        if(In[At] == ',' || At == InputFile.Size)
-        {
+            
+            ParsedValue = 0;
+            while(At < InputRange.Max && In[At] != ',')
+            {
+                Assert(In[At] >= '0' && In[At] <= '9');
+                s64 Digit = (In[At] - '0');
+                ParsedValue = 10*ParsedValue + Digit; 
+                
+                At += 1;
+            }
+            IDRange.Max = ParsedValue;
+            
+            if(In[At] == ',' || At == InputFile.Size)
+            {
 #if 0
-            // To validate
-            // TODO(luca): thread-safe OS_PrintFormat ?
-            printf("%ld-%ld\n", IDRange.Min, IDRange.Max);
+                // To validate
+                // TODO(luca): thread-safe OS_PrintFormat ?
+                printf("%ld-%ld\n", IDRange.Min, IDRange.Max);
 #endif
-            
-            InvalidIDsSum += GetInvalIDsSumForRangePartTwo(IDRange);
+                
+                InvalidIDsSum += GetInvalIDsSumForRangePartTwo(IDRange);
+            }
         }
     }
     
@@ -252,8 +233,8 @@ ENTRY_POINT(EntryPoint)
     LaneSyncU64((u64 *)&Sums, 0);
     
     Sums[LaneIndex()] = InvalidIDsSum;
-    
     LaneSync();
+    
     s64 TotalSum = 0;
     for(EachIndex(Index, LaneCount()))
     {
