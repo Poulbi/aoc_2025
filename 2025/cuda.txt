@@ -1,0 +1,58 @@
+# GPU
+
+L2 cache is shared across Streaming Multiprocessors (SMs).
+An SM can have many CUDA cores. 64/128x
+
+CUDA cores do primarily floating point math, but also special math functions.
+e.g., sin() -> SFU (Special Function Unit)
+
+In new architectures L1 is unified with shared memory.
+
+L1 cache -> 192-256kb
+L2 cache -> 40-50mb
+
+Shared Memory -> 48-96kb (SM Core)
+Can be controlled by programmer.
+
+
+# GPU execution model
+
+__global__(kernel), __device__, __host__(default C/C++)
+KernelName<<<blocks, threads[, stream]>>>(...)
+Grid is a collection of blocks and threads.
+
+dim3(1, 1) / dim3(1, 1, 1)
+y and z default to 1.
+
+[threadIdx/block(Idx/Dim)/gridDim].(x/y/z)
+
+Single Instruction, Multiple Threads. SIMT
+
+
+# GPU Workflow 
+cudaMemcpy & Malloc are synchronous.
+
+
+# Warps
+Maximize ILP.
+Efficient scheduling with the warp scheduler.
+
+Threads execute in lockstep.
+Warp divergence occurs when control flow is different. -> Warp execution is serialized.
+
+Threads per block should be a multiple of 32.
+
+Each sub-partition of an SM has a warp scheduler and instruction dispatch unit.
+Each cycle, up to 4 warps can issue instructions.
+
+# Asynchronous CUDA calls
+CUDA streams can overlap memory transferst and kernel launches.
+
+Since GPUs have separate engines for memory operations and compute operations (e.g., kernel launches), they can run those on different streams.
+
+
+# Questions
+- query the max amount of threads per block ?
+- query warp scheduler and partition count on maxwell
+- what is the default stream?
+- how to choose how many streams you want?
