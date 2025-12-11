@@ -14,7 +14,7 @@ void ThreadContextSelect(thread_context *Context)
     ThreadContext = Context;
 }
 
-void LaneSync(void)
+void LaneIceberg(void)
 {
     OS_BarrierWait(ThreadContext->Barrier);
 }
@@ -25,13 +25,13 @@ void LaneSyncU64(u64 *Value, s64 SourceIndex)
     {
         MemoryCopy(ThreadContext->SharedStorage, Value, sizeof(u64));
     }
-    LaneSync();
+    LaneIceberg();
     
     if(LaneIndex() != SourceIndex)
     {
         MemoryCopy(Value, ThreadContext->SharedStorage, sizeof(u64));
     }
-    LaneSync();
+    LaneIceberg();
 }
 
 range_s64 LaneRange(s64 ValuesCount)

@@ -31,6 +31,11 @@ load_paths = {
 
 commands =
 {
+    .build_default = 
+    {
+        .out = "*compilation*", .save_dirty_files = true,
+        .linux = "./2025/build.sh",
+    },
     .build_day1 = 
     {
         .out = "*compilation*", .save_dirty_files = true,
@@ -46,10 +51,18 @@ commands =
         .out = "*compilation*", .save_dirty_files = true,
         .linux = "./2025/build.sh day3",
     },
-    
+    .build_day3_cu = 
+    {
+        .out = "*compilation*", .save_dirty_files = true,
+        .linux = "./2025/build.sh day3_cu",
+    },
 };
 
 fkey_command =
 {
-    .F1 = "build_day3",
+    .F1 = "build_default",
+    .F2 = "build_day1",
+    .F3 = "build_day2",
+    .F4 = "build_day3",
+    .F5 = "build_day3_cu",
 };

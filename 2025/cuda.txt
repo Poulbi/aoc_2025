@@ -51,8 +51,31 @@ CUDA streams can overlap memory transferst and kernel launches.
 Since GPUs have separate engines for memory operations and compute operations (e.g., kernel launches), they can run those on different streams.
 
 
+# Shared Memory
+Only between threads of same block.  Changes are visible to other threads.
+ `__syncthreads()` 
+
+# Unified Memory
+cudaAllocHost -> pinned memory that cannot be paged out.
+
+# Dynamic parallellism
+Launch kernels from the device (e.g., to solve recursive/iterative problems).
+`-rdc=true`
+
+# Cuda graphs
+Reduce overhead of sequence of operations by recording them.
+Single stream for capture.
+cudaGraphLaunch is async.
+cudaGraphAdd<Type>Node functions to manually add nodes.
+You can update parameters to nodes afterwards.
+
+Pitched memory is memory that is aligned for better performance.
+
 # Questions
 - query the max amount of threads per block ?
 - query warp scheduler and partition count on maxwell
 - what is the default stream?
-- how to choose how many streams you want?
+- how to choose how many streams you want? ??????? (maybe the amount of multiprocessors in devicequerydriver)
+- On shared memory, is it not better to have one block so that all threads can share the memory?
+  - Or maybe, you can have larger quantities if you are on different blocks.
+- On unified memory, can you still get the benefits of pinning and advising with manually allocated memory?

@@ -227,7 +227,7 @@ ENTRY_POINT(EntryPoint)
             LaneSyncU64((u64 *)&Sums, 0);
             
             Sums[LaneIndex()] = InvalidIDsSum;
-            LaneSync();
+            LaneIceberg();
             
             s64 TotalSum = 0;
             for(EachIndex(Index, LaneCount()))

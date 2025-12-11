@@ -40,10 +40,8 @@ CU_Compile()
  printf '[%s compile]\n' "$Compiler"
 
  Flags="
- -g -G -I. -DOS_LINUX=1
+ -g -G -I$ScriptDirectory -DOS_LINUX=1
  -arch sm_50
- -Xcompiler -Wno-pointer-arith
- -Xcompiler -O0
  "
  WarningFlags="
  -diag-suppress 1143
@@ -56,6 +54,7 @@ CU_Compile()
  -Xcompiler -Wconversion
  -Xcompiler -Wdouble-promotion
 
+ -Xcompiler -Wno-pointer-arith
  -Xcompiler -Wno-attributes 
  -Xcompiler -Wno-unused-but-set-variable 
  -Xcompiler -Wno-unused-variable 
@@ -67,8 +66,15 @@ CU_Compile()
  "
  Flags="$Flags $WarningFlags"
 
+ DebugFlags="-g -G -DAOC_INTERNAL=1"
+ ReleaseFlags="-O3"
+
+[ "$debug"   = 1 ] && Flags="$Flags $DebugFlags"
+[ "$release" = 1 ] && Flags="$Flags $ReleaseFlags"
+
  printf '%s\n' "$Source"
- $Compiler $Flags "$(readlink -f "$Source")" -o "$Build"/"$Out"
+ Source="$(readlink -f "$Source")"
+ $Compiler $Flags "$Source" -o "$Build"/"$Out"
 
  DidWork=1
 }
@@ -82,11 +88,11 @@ C_Compile()
  [ "$clang" = 1 ] && Compiler="clang"
  printf '[%s compile]\n' "$Compiler"
  
- CommonCompilerFlags="-DOS_LINUX=1 -fsanitize-trap -nostdinc++ -I."
+ CommonCompilerFlags="-DOS_LINUX=1 -fsanitize-trap -nostdinc++ -I$ScriptDirectory"
  CommonWarningFlags="-Wall -Wextra -Wconversion -Wdouble-promotion -Wno-sign-conversion -Wno-sign-compare -Wno-double-promotion -Wno-unused-but-set-variable -Wno-unused-variable -Wno-write-strings -Wno-pointer-arith -Wno-unused-parameter -Wno-unused-function -Wno-missing-field-initializers"
  LinkerFlags=""
 
- DebugFlags="-g -ggdb -g3"
+ DebugFlags="-g -ggdb -g3 -DAOC_INTERNAL=1"
  ReleaseFlags="-O3"
 
  ClangFlags="-fdiagnostics-absolute-paths -ftime-trace
@@ -97,7 +103,6 @@ C_Compile()
  Flags="$CommonCompilerFlags"
  [ "$debug"   = 1 ] && Flags="$Flags $DebugFlags"
  [ "$release" = 1 ] && Flags="$Flags $ReleaseFlags"
- Flags="$Flags $CommonCompilerFlags"
  Flags="$Flags $CommonWarningFlags"
  [ "$clang" = 1 ] && Flags="$Flags $ClangFlags"
  [ "$gcc"   = 1 ] && Flags="$Flags $GCCFlags"

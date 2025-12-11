@@ -151,7 +151,7 @@ ENTRY_POINT(EntryPoint)
     }
     
     RotationsTable[LaneIndex()] = Rotations;
-    LaneSync();
+    LaneIceberg();
     
     s32 Arrow = 50;
     s32 Password = 0;

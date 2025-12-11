@@ -4,9 +4,20 @@
 
 #define BatteryCount 12
 
-#define GPU_Assert(Expression) if(!(Expression)) { *(int *)0 = 0; }
+#if AOC_INTERNAL
+# if defined(Assert)
+#  undef Assert
+# endif
+# define Assert(Expression)
+#endif
 
-#if 1
+#if AOC_INTERNAL
+# define GPU_Assert(Expression) if(!(Expression)) { *(int *)0 = 0; }
+#else
+# define GPU_Assert(Expression)
+#endif
+
+#if AOC_INTERNAL
 # define CU_Check(Expression) { CU_Check_((Expression), __FILE__, __LINE__); }
 #else
 # define CU_Check(Expression) Expression
@@ -21,6 +32,22 @@ inline void CU_Check_(cudaError_t Code, char *FileName, s32 Line, b32 Abort=fals
             exit(Code);
         }
     }
+}
+
+arena *CU_ArenaAlloc(arena *CPUArena)
+{
+    umm DefaultSize = Kilobytes(64);
+    
+    arena *Arena = PushStruct(CPUArena, arena);
+    
+    void *Base = 0;
+    CU_Check(cudaMalloc(&Base, DefaultSize));
+    
+    Arena->Base = Base;
+    Arena->Pos = 0;
+    Arena->Size = DefaultSize;
+    
+    return Arena;
 }
 
 __global__ void
@@ -86,29 +113,65 @@ ENTRY_POINT(EntryPoint)
                 
                 umm OutputSize = (sizeof(u64)*BatteryCount*LinesCount);
                 u64 *HostOutput = (u64 *)ArenaPush(ThreadContext->Arena, OutputSize);
-                u64 *DeviceOutput = 0;
-                u8 *DeviceLines = 0;
                 
-                CU_Check(cudaMalloc(&DeviceLines, File.Size));
-                CU_Check(cudaMalloc(&DeviceOutput, OutputSize));
-                CU_Check(cudaMemcpy(DeviceLines, File.Data, File.Size, cudaMemcpyHostToDevice));
+                // NOTE(luca): Trigger CUDA context initialization
+                CU_Check(cudaSetDevice(0));
                 
-                GetBigJoltage<<<BlocksCount, ThreadsPerBlock>>>(DeviceOutput, DeviceLines, LinesCount, (s32)LineSize);
-                CU_Check(cudaGetLastError()); 
-                
-                CU_Check(cudaDeviceSynchronize());
-                CU_Check(cudaMemcpy(HostOutput, DeviceOutput, OutputSize, cudaMemcpyDeviceToHost));
-                
-                u64 JoltageSum = 0;
-                for(s32 Idx = 0; Idx < LinesCount; Idx += 1)
-                {
-                    JoltageSum += HostOutput[Idx];
-#if 0
-                    OS_PrintFormat("%lu\n", HostOutput[Idx]);
-#endif
+                // Get occupancy metrics
+                {                
+                    s32 IntendedSharedMemorySize = 0;
+                    s32 MaxBlockSize = 0;
+                    s32 MinGridSize;
+                    s32 MinBlockSize;
+                    CU_Check(cudaOccupancyMaxPotentialBlockSize(&MinGridSize, &MinBlockSize, GetBigJoltage, IntendedSharedMemorySize, MaxBlockSize));
+                    
+                    s32 BlocksCount;
+                    CU_Check(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&BlocksCount, GetBigJoltage, MinGridSize, IntendedSharedMemorySize));
+                    NullExpression;
                 }
                 
-                OS_PrintFormat("Joltage sum is %lu.\n", JoltageSum);
+                // Run GPU code
+                {                
+                    arena *DeviceArena = CU_ArenaAlloc(ThreadContext->Arena);
+                    u8  *DeviceLines  = PushArray(DeviceArena, u8,  File.Size);
+                    u64 *DeviceOutput = PushArray(DeviceArena, u64, LinesCount);
+                    
+                    CU_Check(cudaMemcpy(DeviceLines, File.Data, File.Size, cudaMemcpyHostToDevice));
+                    
+                    cudaEvent_t Start, Stop;
+                    CU_Check(cudaEventCreate(&Start));
+                    CU_Check(cudaEventCreate(&Stop));
+                    
+                    CU_Check(cudaEventRecord(Start, 0));
+                    
+                    GetBigJoltage<<<BlocksCount, ThreadsPerBlock>>>(DeviceOutput, DeviceLines, LinesCount, (s32)LineSize);
+                    
+                    CU_Check(cudaEventRecord(Stop, 0));
+                    CU_Check(cudaEventSynchronize(Stop));
+                    
+                    f32 ElapsedMS = 0;
+                    CU_Check(cudaEventElapsedTime(&ElapsedMS, Start, Stop));
+                    OS_PrintFormat("Elapsed time: %fms\n", (double)ElapsedMS);
+                    
+                    CU_Check(cudaGetLastError()); 
+                    
+                    CU_Check(cudaDeviceSynchronize());
+                    CU_Check(cudaMemcpy(HostOutput, DeviceOutput, OutputSize, cudaMemcpyDeviceToHost));
+                }
+                
+                // Aggregate results
+                {
+                    u64 JoltageSum = 0;
+                    for(s32 Idx = 0; Idx < LinesCount; Idx += 1)
+                    {
+                        JoltageSum += HostOutput[Idx];
+#if 0
+                        OS_PrintFormat("%lu\n", HostOutput[Idx]);
+#endif
+                    }
+                    OS_PrintFormat("Joltage sum is %lu.\n", JoltageSum);
+                }
+                
             }
             else
             {

@@ -1,6 +1,6 @@
 arena *ArenaAlloc(void)
 {
-    umm DefaultSize = Kilobytes(64);
+    umm DefaultSize = Megabytes(64);
     
     arena *Arena = 0;
     
