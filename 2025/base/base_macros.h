@@ -29,6 +29,7 @@ _Pragma("GCC diagnostic push") \
 _Pragma("GCC diagnostic ignored \"-Wall\"") \
 _Pragma("GCC diagnostic ignored \"-Wextra\"") \
 _Pragma("GCC diagnostic ignored \"-Wconversion\"") \
+_Pragma("GCC diagnostic ignored \"-Wdouble-promotion\"") \
 _Pragma("GCC diagnostic ignored \"-Wimplicit-fallthrough\"")
 # define POP_WARNINGS _Pragma("GCC diagnostic pop")
 

@@ -19,9 +19,10 @@ day1=0
 day2=0
 day3=0
 day3_cu=0
+samples=0
 
-# Default build
-[ "$#" = 0 ] && day3_cu=1
+# Default
+[ "$#" = 0 ] && samples=1
 
 for Arg in "$@"; do eval "$Arg=1"; done
 # Exclusive flags
@@ -36,10 +37,12 @@ CU_Compile()
  Source="$1"
  Out="$2"
 
+ Flags="${3:-}"
+
  Compiler=nvcc
  printf '[%s compile]\n' "$Compiler"
 
- Flags="
+ Flags="$Flags
  -g -G -I$ScriptDirectory -DOS_LINUX=1
  -arch sm_50
  "
@@ -74,7 +77,9 @@ CU_Compile()
 
  printf '%s\n' "$Source"
  Source="$(readlink -f "$Source")"
- $Compiler $Flags "$Source" -o "$Build"/"$Out"
+
+ 
+  $Compiler $Flags "$Source" -o "$Build"/"$Out"
 
  DidWork=1
 }
@@ -114,10 +119,28 @@ C_Compile()
  DidWork=1
 }
 
-[ "$day1"    = 1 ] && C_Compile  ./day1/day1.c  day1
-[ "$day2"    = 1 ] && C_Compile  ./day2/day2.c  day2
-[ "$day3"    = 1 ] && C_Compile  ./day3/day3.c  day3
-[ "$day3_cu" = 1 ] && CU_Compile ./day3/day3.cu day3_cu
+Strip()
+{
+ Source="$1"
+ Out="${1%%.cu}"
+ Out="${Out%%.c}"
+ Out="${Out%%.cpp}"
+ Out="${Out##*/}"
+
+ printf '%s %s' "$Source" "$Out"
+}
+
+[ "$day1"    = 1 ] && C_Compile  $(Strip ./day1/day1.c)
+[ "$day2"    = 1 ] && C_Compile  $(Strip ./day2/day2.c)
+[ "$day3"    = 1 ] && C_Compile  $(Strip ./day3/day3.c)
+[ "$day3_cu" = 1 ] && CU_Compile $(Strip ./day3/day3.cu)
+
+if [ "$samples" = 1 ]
+then
+ CU_Compile $(Strip ./lib/cuda-samples/deviceQuery.cpp)
+ CU_Compile $(Strip ./lib/cuda-samples/deviceQueryDrv.cpp) -lcuda
+ CU_Compile $(Strip ./lib/cuda-samples/topologyQuery.cu)
+fi
 
 if [ "$DidWork" = 0 ]
 then
