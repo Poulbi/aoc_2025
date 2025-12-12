@@ -41,12 +41,13 @@ while getopts "t:s:c:o:r:" opt; do
     esac
 done
 
+nsys="$HOME/tmp/opt/cuda/nsight_systems/bin/nsys"
+
 # Shift the processed options away
 shift $((OPTIND -1))
 
-set -x
 # Run the nsys profile command
-nsys profile $trace $sample $ctxsw --force-overwrite=true -o $output "$@"
+$nsys profile $trace $sample $ctxsw --force-overwrite=true -o $output "$@"
 
 # Run the nsys stats command
-nsys stats --force-export=true -r $report $output.nsys-rep
+$nsys stats --force-export=true -r $report $output.nsys-rep

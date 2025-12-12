@@ -44,7 +44,7 @@ CU_Compile()
  printf '[%s compile]\n' "$Compiler"
 
  Flags="$Flags
- -g -G -I$ScriptDirectory/code -DOS_LINUX=1
+ -I$ScriptDirectory/code -DOS_LINUX=1 -DAOC_INTERNAL=1
  -arch sm_50
  "
  WarningFlags="
@@ -68,13 +68,13 @@ CU_Compile()
  -Xcompiler -Wno-unused-function
  -Xcompiler -Wno-missing-field-initializers
  "
- Flags="$Flags $WarningFlags"
-
- DebugFlags="-g -G -DAOC_INTERNAL=1"
+ DebugFlags="-g -G"
  ReleaseFlags="-O3"
 
-[ "$debug"   = 1 ] && Flags="$Flags $DebugFlags"
-[ "$release" = 1 ] && Flags="$Flags $ReleaseFlags"
+ [ "$debug"   = 1 ] && Flags="$Flags $DebugFlags"
+ [ "$release" = 1 ] && Flags="$Flags $ReleaseFlags"
+ 
+ Flags="$Flags $WarningFlags"
 
  printf '%s\n' "$Source"
  Source="$(readlink -f "$Source")"

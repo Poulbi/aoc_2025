@@ -34,27 +34,27 @@ commands =
     .build_default = 
     {
         .out = "*compilation*", .save_dirty_files = true,
-        .linux = "./2025/build.sh",
+        .linux = "sh build.sh",
     },
     .build_day1 = 
     {
         .out = "*compilation*", .save_dirty_files = true,
-        .linux = "./2025/build.sh day1",
+        .linux = "sh build.sh day1",
     },
     .build_day2 = 
     {
         .out = "*compilation*", .save_dirty_files = true,
-        .linux = "./2025/build.sh day2",
+        .linux = "sh build.sh day2",
     },
     .build_day3 = 
     {
         .out = "*compilation*", .save_dirty_files = true,
-        .linux = "./2025/build.sh day3",
+        .linux = "sh build.sh day3",
     },
     .build_day3_cu = 
     {
         .out = "*compilation*", .save_dirty_files = true,
-        .linux = "./2025/build.sh day3_cu",
+        .linux = "sh build.sh day3_cu",
     },
 };
 
