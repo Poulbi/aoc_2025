@@ -3,7 +3,12 @@
 #ifndef CU_H
 #define CU_H
 
-#define kernel __global__
+#define CU_device __device__
+#define CU_host   __host__
+#define CU_kernel __global__
+#define CU_devicehost __device __host__
+#define CU_static_shared __shared__
+#define CU_dynamic_shared extern __shared__
 
 #if AOC_INTERNAL
 #else

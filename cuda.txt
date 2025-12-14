@@ -62,7 +62,7 @@ cudaAllocHost -> pinned memory that cannot be paged out.
 Launch kernels from the device (e.g., to solve recursive/iterative problems).
 `-rdc=true`
 
-# Cuda graphs
+# CUDA graphs
 Reduce overhead of sequence of operations by recording them.
 Single stream for capture.
 cudaGraphLaunch is async.
@@ -70,6 +70,8 @@ cudaGraphAdd<Type>Node functions to manually add nodes.
 You can update parameters to nodes afterwards.
 
 Pitched memory is memory that is aligned for better performance.
+
+Does not work on the NULL stream.
 
 # Memory pools
 Efficient memory allocator that works with a threshold.
@@ -85,6 +87,125 @@ Stateful using handles.
 cuBLAS functions launch their own kernels.
 
 
+# Clusters
+Supported on CC >= 9.0. Co-scheduled on GPU Processing Cluster (GPC).
+Size of 8 is portable.
+Distributed Shared Memroy.
+ cluster.sync() to guarantee that all blocks exist. But also to guarantee that threads have not exited yet.
+
+
+# Asynchronous
+>= Ampere CC 9.0
+You can run memory operations asynchronously.
+cuda::thread_scope::thread_scope_{thread/block/device/system} as scopes.
+
+
+# Compiler
+Device code is compiled to PTX or cubin.
+<<<>>> syntax is replaced by CUDA runtime functions.
+Last stage is compilation by the host compiler.
+JIT exists in the device driver for compatibility and newer features.
+The device drivers has a "compute cache" where the code is stored after compilation.
+NVRTC is a runtime library for compling code to PTX.
+Forward compatibility is guaranteed for minor versions.
+Desktop ~= Tegra binary compatibility.
+-a suffix makes PTX architecture specific code.
+-f family specific.
+
+
+# Memory
+Two types: CUDA arrays or linear memory.
+40-47bit address space on x64.
+cudaMemcpy2D && cudaMemcpy3D functions.
+Global memory space: `__device__ type symbol`.
+ cudaMemcpy{To/From}Symbol()
+ cudaGetSymbolAddress()
+ cudaGetSymbolSize()
+You can set a limit on the persistent cache.
+ Does not work with Multi-Instance GPU (MIG).
+ MPS Server must set it.
+You can influence persistency of the cache with access policies.
+
+Page-locked (pinned) memory copies can be concurrent on some devices.
+ Integrated devices (host and device memory are the same) should do this.
+ cudaHost*Portable flags to make it available to all devices
+ transfers can be overlapped in asynchronous function calls
+Write-Combining memory does not take memory from the cache.
+ Reads are slow! 
+You can map pinned host memory in the address space of th edevice memory.
+ The kernel will implicitly perform transfers and overlap transfers.
+ Atomics may be broken on weird PCI bridges.
+
+Cumulativity occurs when a thread must let another thread know about reads and writes in yet other threads.
+In CC >= 9.0 you can flush reads and writes at the system scope and then you only need to satisfy at the domain level.
+
+## Shared memory
+per CUDA block.
+
+# Concurrent execution
+- Memory transfers from/to device to/from host.
+- Computations on device/host
+- Memory within device.
+Kernel launches, memory copies H2D <=64kb, memory set function calls.
+CUDA_LAUNCH_BLOCKING=1 for debugging.
+profilers make kernel launches synchronous.
+CC>=2.0: Kernel launches from the same CUDA context can happen concurrently.
+ From multiple processes with MPS. 
+
+## Streams
+The default stream causes implicit synchronization.
+Each host thread gets a stream.
+ cudaStreamSynchronize()
+You can set priority hints for the GPU scheduler.  No preempting is done.
+CC>=9.0: Programmatic dependent launch of kernel
+ unsafe and can cause deadlocks
+
+
+# SPEEDRUN NOTES
+## 6.2 Runtime
+You can have multiple devices and have them interoperate memory.
+If the app is executed as a 64bit process the device and host share the same adress space. (CC>=2.0)
+IPC API only available on Linux 64bit.
+ might break cudaMalloc on unaligned memory.
+Errors are stored in a local and asynchronous codes can only be get by synchronizing.
+ cudaErrorNotReady is not an "error"
+You can set the stack size manually.
+You can use the texture memory with texture functions.
+ Analogously, you can use surface memory.
+CUDA arrays are memory layouts for efficient texture fetching.  Can contain many integer/float vector components.
+Texture and surface memory is not coherent.
+For graphics API interop you need to register a resource and then map it for using functions.
+ OpenGL context has to be current to the host thread.
+You can set a default, exclusive-process or prohibited compute mode.
+A display mode switch can cannibalize memory.
+TCC mode removes support for graphics.
+No branch prediction/speculative execution.  Cores are executed in order.
+Memory is little-endian.
+## 7. Hardware Implementation
+Warps come form weaving.
+Multiprocessors partition blocks into warps.
+ Warps have the same program address, but different instruction counter and register state
+ Threads are created, managed, scheduled and executed at warp granularity.
+ All threads in the warp execute the same instruction.
+  On divergence threads get disabled.
+ CC<7.0: Divergent warps cannot share data and thus this can create deadlocks.
+  Independent thread scheduling (CC>=7.0) with a program counter per thread solves this by providing execution at thread-granularity.
+   This means in turns that warps are not guaranteed to be synchronized on the same instruction.
+Switching execution contexts has no cost since it is maintained on chip.
+## 8. Performance guidelines
+Interthread communication should be prioritized over communicating with the host.
+Kernels should be executed concurrently.
+Minimize latency for by making the warp scheduler select an instruction for execution each cycle.
+Number of registers by kernel should not be too high.
+Use the occupancy calculator and derive metrics.
+Minimize data between global and memory and chip memory by using shared memory.
+Optimize for [[Device Memory Accesses]].
+Move more code to the device.
+ Batch up memory transfers.
+Respect alignment and padding for compute capability.
+ Round up arrays to multiples of the warp size.
+
+
 # Questions
 - query the max amount of threads per block ?
 - query warp scheduler and partition count on maxwell
@@ -93,3 +214,7 @@ cuBLAS functions launch their own kernels.
 - On shared memory, is it not better to have one block so that all threads can share the memory?
   - Or maybe, you can have larger quantities if you are on different blocks.
 - On unified memory, can you still get the benefits of pinning and advising with manually allocated memory?
+- What is a front-side bus (PCIe)?
+- How to run MPS ?
+- What is mipmapping ?
+- How to do correctly aligned and padded memory accesses.

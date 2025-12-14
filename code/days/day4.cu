@@ -5,7 +5,7 @@
 
 global_variable void (*Log)(char *Format, ...) = OS_PrintFormat;
 
-kernel void
+CU_kernel void
 GetRollsCount(s32 *AccessibleRollsCount, u8 *Input, umm InputSize, umm Stride)
 {
     s32 ThreadIdx = blockIdx.x*blockDim.x + threadIdx.x; 
@@ -49,10 +49,8 @@ GetRollsCount(s32 *AccessibleRollsCount, u8 *Input, umm InputSize, umm Stride)
     
 }
 
-
 ENTRY_POINT(EntryPoint)
 {
-    
     if(Params->ArgsCount >= 2)
     {
         str8 InputFile = OS_ReadEntireFileIntoMemory(Params->Args[1]);
@@ -70,7 +68,12 @@ ENTRY_POINT(EntryPoint)
             }
             umm Stride = LineSize + 1;
             Assert(InputFile.Size%Stride == 0);
-            Assert(LineSize && InputFile.Data[LineSize] == '\n'); // NOTE(luca): We should check every line...
+            umm Lines = InputFile.Size / Stride;
+            
+            for(umm Idx = 0; Idx < Lines; Idx += 1)
+            {
+                Assert(LineSize && InputFile.Data[Idx*Stride + LineSize] == '\n');
+            }
             
             CU_Check(cudaSetDevice(0));
             
@@ -80,7 +83,6 @@ ENTRY_POINT(EntryPoint)
             
             CU_Check(cudaMemcpy(Input, InputFile.Data, InputFile.Size, cudaMemcpyHostToDevice));
             
-            umm Lines = InputFile.Size / Stride;
             u32 CharacterCount = (u32)(Lines*LineSize);
             
             u32 BlockSize = 256;
@@ -99,12 +101,13 @@ ENTRY_POINT(EntryPoint)
         }
         else
         {
-            // TODO(luca): Loggign
+            Log("ERROR: Could not read file '%s'.\n", Params->Args[1]);
         }
     }
     else
     {
-        // TODO(luca): 
+        Log("ERROR: No input provided.\n"
+            "Usage: %s <input>\n", Params->Args[0]);
     }
     
     return 0;
